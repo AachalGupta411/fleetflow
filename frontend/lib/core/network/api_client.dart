@@ -8,6 +8,24 @@ class ApiClient {
   ApiClient(this._dio);
 
   final Dio _dio;
+   
+    Future<Map<String, dynamic>> getAbsolute(String url) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        url,
+        options: Options(
+          validateStatus: (status) => status != null && status < 600,
+        ),
+      );
+      final data = response.data;
+      if (data == null) {
+        throw ApiException('Empty response from $url.');
+      }
+      return data;
+    } on DioException catch (error) {
+      throw _exceptionFor(error);
+    }
+  }
 
   void Function()? onUnauthorized;
 
