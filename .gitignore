@@ -1,0 +1,29 @@
+# Secrets
+.env
+**/.env
+!.env.example
+**/google-services.json
+**/*firebase-adminsdk*.json
+**/*.jks
+**/*.keystore
+
+# Local proof-of-delivery files
+backend/var/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# OS and editors
+.DS_Store
+.idea/
+*.iml
+*.swp
