@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 720
     cors_origins: str = "http://127.0.0.1:8000,http://localhost:8000"
     google_maps_api_key: str = Field(default="", validation_alias="GOOGLE_MAPS_API_KEY")
+    openroute_api_key: str = Field(default="", validation_alias="OPENROUTE_API_KEY")
     geofence_radius_meters: int = 100
     storage_provider: str = "local"
     storage_local_dir: str = ""
@@ -31,7 +32,7 @@ class Settings(BaseSettings):
     supabase_bucket: str = "fleetflow-pod"
     firebase_credentials_file: str = ""
 
-    @field_validator("google_maps_api_key", "firebase_credentials_file", mode="before")
+    @field_validator("google_maps_api_key", "openroute_api_key", "firebase_credentials_file", mode="before")
     @classmethod
     def strip_optional_setting(cls, value: object) -> object:
         if isinstance(value, str):

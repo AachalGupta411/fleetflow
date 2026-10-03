@@ -72,17 +72,19 @@ class DriverTrackingPanel extends ConsumerWidget {
               ),
             ],
             if (trackable) ...[
-              const SizedBox(height: 8),
-              if (session.tracking)
-                OutlinedButton(
-                  onPressed: () => ref.read(trackingSessionProvider.notifier).pause(),
-                  child: const Text('Stop tracking'),
-                )
-              else
-                FilledButton(
-                  onPressed: () => ref.read(trackingSessionProvider.notifier).resume(),
-                  child: const Text('Start tracking'),
-                ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: session.tracking
+                    ? OutlinedButton(
+                        onPressed: () => ref.read(trackingSessionProvider.notifier).pause(),
+                        child: const Text('Stop tracking'),
+                      )
+                    : FilledButton(
+                        onPressed: () => ref.read(trackingSessionProvider.notifier).resume(),
+                        child: const Text('Start tracking'),
+                      ),
+              ),
             ],
           ],
         ),

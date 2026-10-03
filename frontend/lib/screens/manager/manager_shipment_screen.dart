@@ -166,7 +166,12 @@ class _ManagerShipmentScreenState extends ConsumerState<ManagerShipmentScreen> {
                           vehicles.when(
                             loading: () => const LinearProgressIndicator(),
                             error: (error, _) => Text(error.toString(), style: const TextStyle(color: AppColors.danger)),
-                            data: (items) => _vehicleMenu(items.where((vehicle) => vehicle.status == 'AVAILABLE').toList()),
+                            data: (items) => _vehicleMenu(
+                              items.where((vehicle) => vehicle.status == 'AVAILABLE').toList(),
+                              busy: items.where((vehicle) => vehicle.status != 'AVAILABLE').toList(),
+                              shipments: shipments.asData?.value ?? const <Shipment>[],
+                              admin: admin,
+                            ),
                           ),
                           if (_error != null) ...[
                             const SizedBox(height: 12),
@@ -178,6 +183,13 @@ class _ManagerShipmentScreenState extends ConsumerState<ManagerShipmentScreen> {
                             style: FilledButton.styleFrom(backgroundColor: _Ink.blue, foregroundColor: Colors.white),
                             child: Text(_submitting ? 'Assigning…' : 'Assign'),
                           ),
+                          if (!_canAssign(drivers, vehicles) && !_submitting) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              _assignHint(drivers, vehicles),
+                              style: const TextStyle(color: _Ink.muted, height: 1.35),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -242,9 +254,35 @@ class _ManagerShipmentScreenState extends ConsumerState<ManagerShipmentScreen> {
     );
   }
 
-  Widget _vehicleMenu(List<VehicleRecord> vehicles) {
+  Widget _vehicleMenu(
+    List<VehicleRecord> vehicles, {
+    required List<VehicleRecord> busy,
+    required List<Shipment> shipments,
+    required bool admin,
+  }) {
     if (vehicles.isEmpty) {
-      return const Text('No available vehicles.', style: TextStyle(color: _Ink.muted));
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'No vehicle is free. Each vehicle below is already on an active shipment.',
+            style: TextStyle(color: _Ink.muted, height: 1.35),
+          ),
+          const SizedBox(height: 8),
+          for (final vehicle in busy)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                '${vehicle.vehicleNumber} · ${prettyLabel(vehicle.status)}${_currentVehicleJob(shipments, vehicle.id)}',
+                style: const TextStyle(color: _Ink.text),
+              ),
+            ),
+          TextButton(
+            onPressed: () => context.push(admin ? AppRoutes.adminVehicleNew : AppRoutes.managerVehicleNew),
+            child: const Text('Add a vehicle'),
+          ),
+        ],
+      );
     }
     return DropdownButtonFormField<String>(
       initialValue: _vehicleId,
@@ -257,6 +295,30 @@ class _ManagerShipmentScreenState extends ConsumerState<ManagerShipmentScreen> {
       ],
       onChanged: (value) => setState(() => _vehicleId = value),
     );
+  }
+
+  String _assignHint(AsyncValue<List<DriverProfile>> drivers, AsyncValue<List<VehicleRecord>> vehicles) {
+    final freeDrivers = drivers.asData?.value.where((driver) => driver.status == 'AVAILABLE' && driver.isActive) ?? const [];
+    final freeVehicles = vehicles.asData?.value.where((vehicle) => vehicle.status == 'AVAILABLE') ?? const [];
+    if (freeDrivers.isEmpty && freeVehicles.isEmpty) {
+      return 'Assign needs a free driver and a free vehicle.';
+    }
+    if (freeDrivers.isEmpty) {
+      return 'You still need a free driver before Assign turns on.';
+    }
+    if (freeVehicles.isEmpty) {
+      return 'A driver is free. Add or free a vehicle, then Assign will turn on.';
+    }
+    return 'Choose an available driver and vehicle.';
+  }
+
+  String _currentVehicleJob(List<Shipment> shipments, String vehicleId) {
+    for (final shipment in shipments) {
+      if (shipment.assignedVehicleId == vehicleId && shipment.isActive) {
+        return ' · ${shipment.trackingNumber}';
+      }
+    }
+    return '';
   }
 
   String _currentJob(List<Shipment> shipments, String driverId) {

@@ -5,7 +5,6 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import distinct_on
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.config import get_settings
 from app.core.errors import AppError
 from app.models.driver import Driver
 from app.models.enums import ACTIVE_SHIPMENT_STATUSES, ShipmentStatus, UserRole
@@ -21,7 +20,7 @@ from app.schemas.tracking import (
     TrackingCapabilities,
 )
 from app.services.freshness import classify_freshness
-from app.services.route_service import estimate_route
+from app.services.route_service import estimate_route, routes_configured
 from app.services.shipment_service import shipment_for_actor
 
 TRACKING_STATUSES = {
@@ -139,12 +138,12 @@ def shipment_tracking(db: Session, actor: User, shipment_id: UUID) -> ShipmentTr
         eta=route.eta,
         route_points=[RoutePoint(latitude=lat, longitude=lng) for lat, lng in route.points],
         message=message,
-        routes_configured=bool(get_settings().google_maps_api_key),
+        routes_configured=routes_configured(),
     )
 
 
 def capabilities() -> TrackingCapabilities:
-    return TrackingCapabilities(routes_configured=bool(get_settings().google_maps_api_key))
+    return TrackingCapabilities(routes_configured=routes_configured())
 
 
 def _authorize_driver_location(db: Session, actor: User, driver_id: UUID) -> None:

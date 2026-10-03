@@ -13,6 +13,7 @@ import '../../services/delivery_service.dart';
 import '../../services/logistics_service.dart';
 import '../../providers/tracking_providers.dart';
 import '../../widgets/async_view.dart';
+import '../../widgets/dark_page.dart';
 import '../../widgets/delivery_progress.dart';
 import '../../widgets/driver_tracking_panel.dart';
 import '../../widgets/fleet_scaffold.dart';
@@ -35,32 +36,57 @@ class DeliveryDetailScreen extends ConsumerWidget {
         data: (item) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              item.trackingNumber,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            StatusBadge(value: item.status),
-            const SizedBox(height: 16),
-            DeliveryProgress(status: item.status, arrived: item.geofenceEnteredAt != null),
-            const SizedBox(height: 16),
-            DriverTrackingPanel(shipment: item),
-            const SizedBox(height: 16),
-            _Block('Pickup', item.pickupAddress),
-            _Block('Destination', item.deliveryAddress),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                onPressed: () => _navigate(context, item),
-                icon: const Icon(Icons.navigation_outlined),
-                label: const Text('Navigate'),
+            DarkSection(
+              title: item.trackingNumber,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  StatusBadge(value: item.status),
+                  const SizedBox(height: 14),
+                  DeliveryProgress(status: item.status, arrived: item.geofenceEnteredAt != null),
+                ],
               ),
             ),
-            _Block('Priority', prettyLabel(item.priority)),
-            _Block('Package', item.packageDescription),
-            if (item.vehicleNumber != null) _Block('Vehicle', item.vehicleNumber!),
-            if (item.failureReason != null) _Block('Failure reason', item.failureReason!),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            DriverTrackingPanel(shipment: item),
+            const SizedBox(height: 12),
+            DarkSection(
+              title: 'Route',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Fact(Icons.trip_origin, 'Pickup', item.pickupAddress),
+                  const SizedBox(height: 12),
+                  _Fact(Icons.flag_outlined, 'Destination', item.deliveryAddress),
+                  const SizedBox(height: 14),
+                  OutlinedButton.icon(
+                    onPressed: () => _navigate(context, item),
+                    icon: const Icon(Icons.navigation_outlined, size: 18),
+                    label: const Text('Navigate'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            DarkSection(
+              title: 'Shipment',
+              child: Column(
+                children: [
+                  _Fact(Icons.flag_circle_outlined, 'Priority', prettyLabel(item.priority)),
+                  const SizedBox(height: 12),
+                  _Fact(Icons.inventory_2_outlined, 'Package', item.packageDescription),
+                  if (item.vehicleNumber != null) ...[
+                    const SizedBox(height: 12),
+                    _Fact(Icons.local_shipping_outlined, 'Vehicle', item.vehicleNumber!),
+                  ],
+                  if (item.failureReason != null) ...[
+                    const SizedBox(height: 12),
+                    _Fact(Icons.report_outlined, 'Failure reason', item.failureReason!),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             ..._actions(context, ref, item),
           ],
         ),
@@ -76,45 +102,62 @@ class DeliveryDetailScreen extends ConsumerWidget {
       _ => <String>[],
     };
     final canFinish = item.status == 'IN_TRANSIT' || item.status == 'ARRIVING';
-    return [
+    final buttons = <Widget>[
       for (final status in next)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: FilledButton(
-            onPressed: () => _update(context, ref, item.id, status),
-            child: Text(prettyLabel(status)),
-          ),
+        FilledButton(
+          onPressed: () => _update(context, ref, item.id, status),
+          child: Text(_actionLabel(status)),
         ),
-      if (canFinish && item.geofenceEnteredAt == null) ...[
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            'Mark arrived checks your GPS against a $defaultGeofenceRadiusMeters m zone around the destination.',
-            style: const TextStyle(color: AppColors.muted, height: 1.35),
-          ),
+      if (canFinish && item.geofenceEnteredAt == null)
+        FilledButton.tonal(
+          onPressed: () => _arrive(context, ref, item),
+          child: const Text('Mark arrived'),
         ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: FilledButton(
-            onPressed: () => _arrive(context, ref, item),
-            child: const Text('Mark arrived'),
-          ),
-        ),
-      ],
       if (item.status == 'ARRIVING')
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: FilledButton(
-            onPressed: () => context.push(AppRoutes.driverPod(item.id)),
-            child: const Text('Proof of delivery'),
-          ),
+        FilledButton(
+          onPressed: () => context.push(AppRoutes.driverPod(item.id)),
+          child: const Text('Proof of delivery'),
         ),
       if (canFinish)
         OutlinedButton(
           onPressed: () => context.push(AppRoutes.driverFail(item.id)),
+          style: OutlinedButton.styleFrom(foregroundColor: AppColors.danger, side: const BorderSide(color: DarkColors.line)),
           child: const Text('Report failed delivery'),
         ),
     ];
+    if (buttons.isEmpty) {
+      return const [];
+    }
+    return [
+      DarkSection(
+        title: 'Actions',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (canFinish && item.geofenceEnteredAt == null) ...[
+              Text(
+                'Mark arrived checks your GPS against a $defaultGeofenceRadiusMeters m zone around the destination.',
+                style: const TextStyle(color: AppColors.muted, height: 1.35),
+              ),
+              const SizedBox(height: 12),
+            ],
+            for (var index = 0; index < buttons.length; index++) ...[
+              if (index > 0) const SizedBox(height: 8),
+              buttons[index],
+            ],
+          ],
+        ),
+      ),
+    ];
+  }
+
+  String _actionLabel(String status) {
+    return switch (status) {
+      'PICKED_UP' => 'Mark picked up',
+      'IN_TRANSIT' => 'Start delivery',
+      'ARRIVING' => 'Mark arriving',
+      _ => prettyLabel(status),
+    };
   }
 
   Future<void> _arrive(BuildContext context, WidgetRef ref, Shipment item) async {
@@ -202,24 +245,31 @@ class DeliveryDetailScreen extends ConsumerWidget {
   }
 }
 
-class _Block extends StatelessWidget {
-  const _Block(this.label, this.value);
+class _Fact extends StatelessWidget {
+  const _Fact(this.icon, this.label, this.value);
 
+  final IconData icon;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
-          const SizedBox(height: 2),
-          Text(value),
-        ],
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: AppColors.muted),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 12, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text(value, style: const TextStyle(color: AppColors.ink, height: 1.35)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1,9 +1,20 @@
+from types import SimpleNamespace
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.db.session import engine, get_db
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def no_live_routing(monkeypatch):
+    """Keep API tests off the live OpenRoute/Google keys in backend/.env."""
+    monkeypatch.setattr(
+        "app.services.route_service.get_settings",
+        lambda: SimpleNamespace(google_maps_api_key="", openroute_api_key=""),
+    )
 
 
 @pytest.fixture

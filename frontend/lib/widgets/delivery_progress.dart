@@ -19,11 +19,9 @@ class DeliveryProgress extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Delivery progress', style: TextStyle(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
         Wrap(
-          spacing: 6,
-          runSpacing: 6,
+          spacing: 8,
+          runSpacing: 8,
           children: [
             for (var index = 0; index < deliverySteps.length; index++)
               _Step(
@@ -54,7 +52,20 @@ class _Step extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = current ? AppColors.ink : done ? AppColors.success : AppColors.muted;
-    return Text(label, style: TextStyle(color: color, fontWeight: current ? FontWeight.w800 : FontWeight.w500, fontSize: 12));
+    final background = current
+        ? AppColors.blue
+        : done
+        ? const Color(0xFF14532D)
+        : AppColors.panel;
+    final foreground = current
+        ? Colors.white
+        : done
+        ? const Color(0xFF86EFAC)
+        : AppColors.muted;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(999)),
+      child: Text(label, style: TextStyle(color: foreground, fontWeight: FontWeight.w700, fontSize: 12)),
+    );
   }
 }
